@@ -4,6 +4,7 @@ import { useStore } from '../lib/store'
 import { DEFAULT_HOLIDAYS } from '../lib/holidays'
 import { formatShort, todayISO, WEEKDAYS_SHORT, WEEKDAYS } from '../lib/dates'
 import { Button, Sheet, Tag } from './ui'
+import { ShareAppCard } from './ShareApp'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const { settings, setSettings, holidays, setHolidays, user, logout } = useStore()
@@ -28,6 +29,8 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           </div>
           <Button variant="ghost" onClick={logout}><LogOut size={16} /> Salir</Button>
         </section>
+
+        <ShareAppCard />
 
         <section className="grid gap-3">
           <h3 className="font-semibold">Horario laboral</h3>

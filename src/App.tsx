@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Sun, CalendarDays, FileText, ListTodo, History as HistoryIcon, Settings, Plus } from 'lucide-react'
+import { Sun, CalendarDays, FileText, ListTodo, History as HistoryIcon, Settings, Plus, Share2, Check } from 'lucide-react'
+import { useShareApp } from './components/ShareApp'
 import { Logo } from './components/Logo'
 import { ItemEditor } from './components/ItemEditor'
 import { SettingsSheet } from './components/SettingsSheet'
@@ -30,6 +31,7 @@ export default function App() {
   const [editor, setEditor] = useState<{ id?: string; kind: Item['kind'] } | null>(null)
   const [settings, setSettings] = useState(false)
   const { syncError } = useStore()
+  const shareApp = useShareApp()
 
   useEffect(() => {
     const on = () => setTab(tabFromHash())
@@ -60,6 +62,9 @@ export default function App() {
           </button>
         ))}
         <div className="flex-1" />
+        <button type="button" onClick={shareApp.share} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-fg">
+          {shareApp.copied ? <><Check size={18} /> Link copiado</> : <><Share2 size={18} /> Compartir app</>}
+        </button>
         <button type="button" onClick={() => setSettings(true)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-fg">
           <Settings size={18} /> Ajustes
         </button>
@@ -72,6 +77,9 @@ export default function App() {
             <Logo size={32} />
             <span className="font-display text-lg font-bold">Agente X</span>
             <div className="flex-1" />
+            <button type="button" onClick={shareApp.share} className="rounded-full p-2 text-muted hover:bg-surface-2" aria-label="Compartir la app">
+              {shareApp.copied ? <Check size={20} /> : <Share2 size={20} />}
+            </button>
             <button type="button" onClick={() => setSettings(true)} className="rounded-full p-2 text-muted hover:bg-surface-2" aria-label="Ajustes">
               <Settings size={20} />
             </button>
