@@ -11,6 +11,7 @@ import { Agenda } from './screens/Agenda'
 import { History } from './screens/History'
 import type { Item } from './lib/types'
 import { useStore } from './lib/store'
+import { mailtoLink } from './lib/email'
 
 const TABS = [
   { id: 'hoy', label: 'Hoy', icon: Sun },
@@ -30,7 +31,18 @@ export default function App() {
   const [tab, setTab] = useState<Tab>(tabFromHash)
   const [editor, setEditor] = useState<{ id?: string; kind: Item['kind'] } | null>(null)
   const [settings, setSettings] = useState(false)
-  const { syncError } = useStore()
+  const { syncError, items } = useStore()
+
+  // Botón "Preparar email" de una notificación: abre el correo con todo cargado.
+  useEffect(() => {
+    const q = new URLSearchParams(location.search)
+    const id = q.get('mail')
+    const date = q.get('date')
+    if (!id || !date) return
+    history.replaceState(null, '', location.pathname + location.hash)
+    const item = items.find((i) => i.id === id)
+    if (item) location.href = mailtoLink(item, date)
+  }, [items])
   const shareApp = useShareApp()
 
   useEffect(() => {

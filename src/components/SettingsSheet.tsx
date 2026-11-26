@@ -5,6 +5,7 @@ import { DEFAULT_HOLIDAYS } from '../lib/holidays'
 import { formatShort, todayISO, WEEKDAYS_SHORT, WEEKDAYS } from '../lib/dates'
 import { Button, Sheet, Tag } from './ui'
 import { ShareAppCard } from './ShareApp'
+import { PushSettings } from './PushSettings'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const { settings, setSettings, holidays, setHolidays, user, logout } = useStore()
@@ -29,6 +30,8 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           </div>
           <Button variant="ghost" onClick={logout}><LogOut size={16} /> Salir</Button>
         </section>
+
+        <PushSettings />
 
         <ShareAppCard />
 

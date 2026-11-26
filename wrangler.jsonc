@@ -10,7 +10,11 @@
   ],
   "vars": {
     // Client ID de Google OAuth (público). Se completa al dar de alta el login con Google.
+    // Clave pública VAPID para las notificaciones push (la privada es un secreto).
+    "VAPID_PUBLIC_KEY": "BP7-LejKe7yfefhdh4JmVlomlVwMJ1nmsm9_D3ilBmMPqUKvJvVmeSXiP9SgB6DfifkD__0qvGcS61PnN8TZVCI",
     "GOOGLE_CLIENT_ID": "858064675156-kqgehgnu3fb90cmtbit4pah76aij8va8.apps.googleusercontent.com"
   },
+  // Revisa cada 5 minutos qué avisos mandar.
+  "triggers": { "crons": ["*/5 * * * *"] },
   "observability": { "enabled": true }
 }

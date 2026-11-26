@@ -1,9 +1,15 @@
 import { verifyGoogleIdToken } from './google'
 import { ASSETS } from './assets.gen'
+import { sendPush, type VapidKeys } from './webpush'
+import { dueNotifications, localNow, type NotificationPayload } from './reminders'
+import { DEFAULT_HOLIDAYS } from '../src/lib/holidays'
 
 export interface Env {
   DB: D1Database
   GOOGLE_CLIENT_ID: string
+  VAPID_PUBLIC_KEY: string
+  /** Secreto (wrangler secret put VAPID_PRIVATE_KEY). */
+  VAPID_PRIVATE_KEY?: string
   /** Solo para desarrollo local (.dev.vars): permite entrar sin Google. */
   DEV_LOGIN?: string
 }
@@ -92,7 +98,7 @@ async function api(req: Request, env: Env, path: string): Promise<Response> {
   const method = req.method
 
   if (path === '/api/config' && method === 'GET') {
-    return json({ googleClientId: env.GOOGLE_CLIENT_ID || null, devLogin: env.DEV_LOGIN === '1' })
+    return json({ googleClientId: env.GOOGLE_CLIENT_ID || null, devLogin: env.DEV_LOGIN === '1', vapidPublicKey: env.VAPID_PUBLIC_KEY || null })
   }
 
   if (path === '/api/auth/google' && method === 'POST') {
@@ -169,6 +175,31 @@ async function api(req: Request, env: Env, path: string): Promise<Response> {
     return json({ ok: true })
   }
 
+  if (path === '/api/push/subscribe' && method === 'POST') {
+    const b = (await req.json().catch(() => ({}))) as { endpoint?: string; keys?: { p256dh?: string; auth?: string }; timezone?: string }
+    if (!isStr(b.endpoint, 1000) || !/^https:\/\//.test(b.endpoint) || !isStr(b.keys?.p256dh, 200) || !isStr(b.keys?.auth, 100)) return error(400, 'Suscripción inválida')
+    const stmts = [
+      env.DB.prepare('INSERT OR REPLACE INTO push_subscriptions (endpoint, user_id, p256dh, auth) VALUES (?, ?, ?, ?)').bind(b.endpoint, uid, b.keys!.p256dh, b.keys!.auth),
+    ]
+    if (isStr(b.timezone, 64)) stmts.push(env.DB.prepare('UPDATE users SET timezone = ? WHERE id = ?').bind(b.timezone, uid))
+    await env.DB.batch(stmts)
+    return json({ ok: true })
+  }
+
+  if (path === '/api/push/unsubscribe' && method === 'POST') {
+    const b = (await req.json().catch(() => ({}))) as { endpoint?: string }
+    if (isStr(b.endpoint, 1000)) await env.DB.prepare('DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?').bind(b.endpoint, uid).run()
+    return json({ ok: true })
+  }
+
+  if (path === '/api/push/test' && method === 'POST') {
+    const sent = await pushToUser(env, uid, {
+      title: '¡Hola! Soy Agente X 🤖', body: 'Así te van a llegar los avisos de tus informes, tareas y reuniones.',
+      tag: 'test', itemId: '', key: '', date: '', kind: 'task', actions: [],
+    })
+    return sent > 0 ? json({ ok: true, sent }) : error(400, 'Este usuario no tiene dispositivos con avisos activados')
+  }
+
   if (path === '/api/profile' && method === 'PATCH') {
     const b = (await req.json().catch(() => ({}))) as { settings?: unknown; holidays?: unknown; onboarded?: boolean }
     const sets: string[] = []
@@ -184,6 +215,60 @@ async function api(req: Request, env: Env, path: string): Promise<Response> {
   }
 
   return error(404, 'No encontrado')
+}
+
+function vapid(env: Env): VapidKeys | null {
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return null
+  return { publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY, subject: 'https://agente-x.aiannaci.workers.dev' }
+}
+
+/** Manda un aviso a todos los dispositivos del usuario. Devuelve cuántos lo recibieron. */
+async function pushToUser(env: Env, uid: string, payload: NotificationPayload): Promise<number> {
+  const keys = vapid(env)
+  if (!keys) throw new Error('Faltan las claves VAPID')
+  const { results } = await env.DB.prepare('SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?').bind(uid).all<{ endpoint: string; p256dh: string; auth: string }>()
+  let ok = 0
+  for (const sub of results) {
+    const r = await sendPush(sub, payload, keys).catch((e) => { console.error(e); return 'error' as const })
+    if (r === 'ok') ok++
+    if (r === 'gone') await env.DB.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').bind(sub.endpoint).run()
+  }
+  return ok
+}
+
+/** Cada 5 minutos: revisa qué le toca a cada usuario y le manda los avisos pendientes. */
+async function runReminders(env: Env) {
+  if (!vapid(env)) return
+  const { results: users } = await env.DB.prepare(
+    'SELECT DISTINCT u.id, u.timezone FROM users u JOIN push_subscriptions p ON p.user_id = u.id',
+  ).all<{ id: string; timezone: string | null }>()
+
+  for (const u of users) {
+    try {
+      const data = await loadData(env, u.id)
+      const now = localNow(u.timezone || 'America/Argentina/Buenos_Aires')
+      const due = dueNotifications({
+        items: data.items, completions: data.completions, overrides: data.overrides,
+        holidays: data.holidays ?? DEFAULT_HOLIDAYS,
+        settings: data.settings ?? { workStart: '08:00', workEnd: '17:00', workDays: [1, 2, 3, 4, 5] },
+      }, now.date, now.minutes)
+      if (!due.length) continue
+
+      const { results: sent } = await env.DB.prepare(
+        `SELECT key FROM notification_log WHERE user_id = ? AND key IN (${due.map(() => '?').join(',')})`,
+      ).bind(u.id, ...due.map((d) => d.logKey)).all<{ key: string }>()
+      const already = new Set(sent.map((r) => r.key))
+
+      for (const d of due.filter((d) => !already.has(d.logKey))) {
+        // Se registra antes de mandar: si algo falla, preferimos no repetir avisos.
+        await env.DB.prepare('INSERT OR IGNORE INTO notification_log (user_id, key, sent_at) VALUES (?, ?, ?)').bind(u.id, d.logKey, Date.now()).run()
+        await pushToUser(env, u.id, d.payload)
+      }
+    } catch (e) {
+      console.error('reminders', u.id, e)
+    }
+  }
+  await env.DB.prepare('DELETE FROM notification_log WHERE sent_at < ?').bind(Date.now() - 90 * 86400_000).run()
 }
 
 const decoded = new Map<string, Uint8Array>()
@@ -219,5 +304,8 @@ export default {
       }
     }
     return serveAsset(url.pathname)
+  },
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(runReminders(env))
   },
 } satisfies ExportedHandler<Env>

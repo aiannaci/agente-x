@@ -9,8 +9,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      workbox: { navigateFallbackDenylist: [/^\/api\//] },
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      // Service worker propio (src/sw.ts) para recibir las notificaciones push.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'] },
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'badge-96.png'],
       manifest: {
         name: 'Agente X',
         short_name: 'Agente X',

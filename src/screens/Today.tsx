@@ -6,6 +6,7 @@ import { addDays, todayISO, formatDayLabel, cap, MONTHS, fromISO, WEEKDAYS, week
 import { OccurrenceCard } from '../components/OccurrenceCard'
 import { Button, Empty, Section } from '../components/ui'
 import { Logo } from '../components/Logo'
+import { PushPrompt } from '../components/PushSettings'
 
 export function Today({ onEdit, onNewReport }: { onEdit: (id: string) => void; onNewReport: () => void }) {
   const { items, completions, overrides, calendar, onboarded, setOnboarded, holidays, user } = useStore()
@@ -49,6 +50,8 @@ export function Today({ onEdit, onNewReport }: { onEdit: (id: string) => void; o
           </div>
         </div>
       )}
+
+      {onboarded && <PushPrompt />}
 
       {meetings.length > 0 && (
         <Section title={<span className="inline-flex items-center gap-1.5"><Users size={13} /> Reuniones de hoy</span>} aside={`${meetings.length}`}>
