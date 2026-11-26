@@ -7,7 +7,7 @@ import { SettingsSheet } from './components/SettingsSheet'
 import { Today } from './screens/Today'
 import { Upcoming } from './screens/Upcoming'
 import { Reports } from './screens/Reports'
-import { Tasks } from './screens/Tasks'
+import { Agenda } from './screens/Agenda'
 import { History } from './screens/History'
 import type { Item } from './lib/types'
 import { useStore } from './lib/store'
@@ -16,7 +16,7 @@ const TABS = [
   { id: 'hoy', label: 'Hoy', icon: Sun },
   { id: 'proximos', label: 'Próximos', icon: CalendarDays },
   { id: 'informes', label: 'Informes', icon: FileText },
-  { id: 'tareas', label: 'Tareas', icon: ListTodo },
+  { id: 'agenda', label: 'Agenda', icon: ListTodo },
   { id: 'historial', label: 'Historial', icon: HistoryIcon },
 ] as const
 type Tab = (typeof TABS)[number]['id']
@@ -91,7 +91,7 @@ export default function App() {
           {tab === 'hoy' && <Today onEdit={edit} onNewReport={() => newItem('report')} />}
           {tab === 'proximos' && <Upcoming onEdit={edit} />}
           {tab === 'informes' && <Reports onEdit={edit} onNew={() => newItem('report')} />}
-          {tab === 'tareas' && <Tasks onEdit={edit} onNew={() => newItem('task')} />}
+          {tab === 'agenda' && <Agenda onEdit={edit} onNew={newItem} />}
           {tab === 'historial' && <History />}
         </main>
       </div>

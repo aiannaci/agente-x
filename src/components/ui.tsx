@@ -54,10 +54,11 @@ export function Sheet({ title, onClose, children, footer }: { title: string; onC
   )
 }
 
-export function Tag({ children, tone = 'soft' }: { children: ReactNode; tone?: 'soft' | 'task' | 'danger' | 'outline' }) {
+export function Tag({ children, tone = 'soft' }: { children: ReactNode; tone?: 'soft' | 'task' | 'meeting' | 'danger' | 'outline' }) {
   const cls = {
     soft: 'bg-soft text-fg',
     task: 'border border-pink text-fg',
+    meeting: 'bg-cyan/15 text-fg border border-cyan/60',
     danger: 'bg-danger-soft text-danger',
     outline: 'border border-dashed border-line text-muted',
   }[tone]

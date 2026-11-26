@@ -58,7 +58,8 @@ function monthlyDate(rule: Rule, year: number, month0: number, cal: Calendar): I
  * Devuelve pares { key, date }: `key` es la fecha nominal y `date` la ajustada al día
  * hábil anterior cuando la nominal cae feriado o fin de semana.
  */
-export function ruleOccurrences(rule: Rule, from: ISODate, to: ISODate, cal: Calendar): { key: ISODate; date: ISODate }[] {
+export function ruleOccurrences(rule: Rule, from: ISODate, to: ISODate, cal: Calendar, shift = true): { key: ISODate; date: ISODate }[] {
+  const adjust = (d: ISODate) => (shift ? previousBusinessDay(d, cal) : d)
   const out: { key: ISODate; date: ISODate }[] = []
   // Ampliamos el rango de búsqueda: un ajuste puede mover la fecha hacia atrás.
   const scanFrom = addDays(from, -1)
@@ -68,7 +69,7 @@ export function ruleOccurrences(rule: Rule, from: ISODate, to: ISODate, cal: Cal
     out.push({ key: rule.date, date: rule.date })
   } else if (rule.type === 'weekly') {
     for (let d = scanFrom; d <= scanTo; d = addDays(d, 1)) {
-      if (rule.days.includes(weekday(d))) out.push({ key: d, date: previousBusinessDay(d, cal) })
+      if (rule.days.includes(weekday(d))) out.push({ key: d, date: adjust(d) })
     }
   } else {
     const start = fromISO(scanFrom)
@@ -77,7 +78,7 @@ export function ruleOccurrences(rule: Rule, from: ISODate, to: ISODate, cal: Cal
     let m = start.getMonth()
     while (y < end.getFullYear() || (y === end.getFullYear() && m <= end.getMonth())) {
       const d = monthlyDate(rule, y, m, cal)
-      if (d) out.push({ key: d, date: previousBusinessDay(d, cal) })
+      if (d) out.push({ key: d, date: adjust(d) })
       m++
       if (m > 11) { m = 0; y++ }
     }
@@ -101,7 +102,8 @@ export function occurrencesInRange(
   for (const item of items) {
     if (!item.active || !item.rule) continue
     // Buscamos un poco más allá del rango para detectar ocurrencias movidas hacia adentro.
-    const raw = ruleOccurrences(item.rule, addDays(from, -45), addDays(to, 45), cal)
+    // Las reuniones no se adelantan por feriados: se muestran con aviso.
+    const raw = ruleOccurrences(item.rule, addDays(from, -45), addDays(to, 45), cal, item.kind !== 'meeting')
     for (const { key, date } of raw) {
       const ov = ovMap.get(`${item.id}|${key}`)
       if (ov?.skipped) continue
@@ -111,7 +113,8 @@ export function occurrencesInRange(
       out.push({ item, key, date: eff, done: doneSet.has(`${item.id}|${key}`), moved: !!ov?.movedTo })
     }
   }
-  return out.sort((a, b) => (a.date! < b.date! ? -1 : a.date! > b.date! ? 1 : (a.item.time ?? '').localeCompare(b.item.time ?? '')))
+  // Por fecha; dentro del día, primero lo que tiene hora (en orden) y después el resto.
+  return out.sort((a, b) => (a.date! < b.date! ? -1 : a.date! > b.date! ? 1 : (a.item.time ?? '99:99').localeCompare(b.item.time ?? '99:99')))
 }
 
 /** Asunto automático del email. */

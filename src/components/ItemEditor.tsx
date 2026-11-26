@@ -1,5 +1,5 @@
 import { useMemo, useState, type KeyboardEvent } from 'react'
-import { Trash2, X, Info } from 'lucide-react'
+import { Trash2, X, Info, TriangleAlert } from 'lucide-react'
 import type { Item, Rule, SubjectPeriod } from '../lib/types'
 import { useStore } from '../lib/store'
 import { ruleOccurrences, emailSubject, defaultSubjectPeriod, describeRule } from '../lib/recurrence'
@@ -62,14 +62,17 @@ export function ItemEditor({ itemId, kind, onClose }: { itemId?: string; kind: I
   const [notes, setNotes] = useState(existing?.notes ?? '')
   const [to, setTo] = useState<string[]>(existing?.to ?? [])
   const [cc, setCc] = useState<string[]>(existing?.cc ?? [])
-  const [time, setTime] = useState(existing?.time ?? '')
+  const [time, setTime] = useState(existing?.time ?? (kind === 'meeting' ? '10:00' : ''))
+  const [endTime, setEndTime] = useState(existing?.endTime ?? '')
+  const [location, setLocation] = useState(existing?.location ?? '')
+  const [remindMinutes, setRemindMinutes] = useState(existing?.remindMinutes ?? 15)
   const [priority, setPriority] = useState<Item['priority']>(existing?.priority ?? 'normal')
   const [remindDayBefore, setRemind] = useState(existing?.remindDayBefore ?? false)
   const [active, setActive] = useState(existing?.active ?? true)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const r = existing?.rule
-  const [ruleType, setRuleType] = useState<RuleType>(r?.type ?? (kind === 'report' ? 'weekly' : 'none'))
+  const [ruleType, setRuleType] = useState<RuleType>(r?.type ?? (kind === 'report' ? 'weekly' : kind === 'meeting' ? 'once' : 'none'))
   const [days, setDays] = useState<number[]>(r?.type === 'weekly' ? r.days : [1])
   const [monthDay, setMonthDay] = useState<number | 'last'>(r?.type === 'monthDay' ? r.day : 1)
   const [bdN, setBdN] = useState<number>(r?.type === 'businessDay' ? r.n : 1)
@@ -93,12 +96,14 @@ export function ItemEditor({ itemId, kind, onClose }: { itemId?: string; kind: I
 
   const preview = useMemo(() => {
     if (!rule || (rule.type === 'weekly' && rule.days.length === 0)) return []
-    return ruleOccurrences(rule, today, addDays(today, 400), calendar).slice(0, 4)
-  }, [rule, calendar, today])
+    return ruleOccurrences(rule, today, addDays(today, 400), calendar, k !== 'meeting').slice(0, 4)
+  }, [rule, calendar, today, k])
 
   const isReport = k === 'report'
+  const isMeeting = k === 'meeting'
+  const isTask = k === 'task'
   const invalidEmails = [...to, ...cc].filter((e) => !isEmail(e))
-  const canSave = title.trim() && (!isReport || to.length > 0) && invalidEmails.length === 0 && !(rule?.type === 'weekly' && rule.days.length === 0) && !(isReport && !rule)
+  const canSave = title.trim() && (!isReport || to.length > 0) && invalidEmails.length === 0 && !(rule?.type === 'weekly' && rule.days.length === 0) && !(!isTask && !rule) && !(isMeeting && !time) && !(isMeeting && endTime && endTime <= time)
 
   function save() {
     if (!canSave) return
@@ -112,6 +117,9 @@ export function ItemEditor({ itemId, kind, onClose }: { itemId?: string; kind: I
       subjectPeriod: effectivePeriod,
       rule,
       time: !isReport && time ? time : undefined,
+      endTime: isMeeting && endTime ? endTime : undefined,
+      location: isMeeting && location.trim() ? location.trim() : undefined,
+      remindMinutes: isMeeting ? remindMinutes : undefined,
       priority,
       remindDayBefore,
       active,
@@ -124,7 +132,7 @@ export function ItemEditor({ itemId, kind, onClose }: { itemId?: string; kind: I
 
   return (
     <Sheet
-      title={existing ? (isReport ? 'Editar informe' : 'Editar tarea') : isReport ? 'Nuevo informe' : 'Nueva tarea'}
+      title={`${existing ? 'Editar' : isTask ? 'Nueva' : 'Nuevo'} ${isReport ? 'informe' : isMeeting ? 'reunión' : 'tarea'}`.replace(/^Nuevo reunión/, 'Nueva reunión').replace(/^\w/, (c) => c.toUpperCase())}
       onClose={onClose}
       footer={
         <>
@@ -146,19 +154,23 @@ export function ItemEditor({ itemId, kind, onClose }: { itemId?: string; kind: I
       <div className="grid gap-5">
         {!existing && (
           <div className="flex rounded-xl bg-surface-2 p-1" role="tablist" aria-label="Tipo">
-            {(['report', 'task'] as const).map((opt) => (
+            {(['report', 'task', 'meeting'] as const).map((opt) => (
               <button key={opt} type="button" role="tab" aria-selected={k === opt}
-                onClick={() => { setK(opt); if (opt === 'report' && ruleType === 'none') setRuleType('weekly') }}
+                onClick={() => {
+                  setK(opt)
+                  if (opt === 'report' && ruleType === 'none') setRuleType('weekly')
+                  if (opt === 'meeting') { if (ruleType === 'none') setRuleType('once'); if (!time) setTime('10:00') }
+                }}
                 className={`flex-1 rounded-lg py-1.5 text-sm font-semibold ${k === opt ? 'bg-surface text-fg shadow-sm' : 'text-muted'}`}>
-                {opt === 'report' ? 'Informe' : 'Tarea'}
+                {opt === 'report' ? 'Informe' : opt === 'task' ? 'Tarea' : 'Reunión'}
               </button>
             ))}
           </div>
         )}
 
         <div className="grid gap-1.5">
-          <label htmlFor="ed-title" className="label">{isReport ? 'Nombre del informe' : 'Qué tenés que hacer'}</label>
-          <input id="ed-title" className="field" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isReport ? 'Ej. Facturas bloqueadas' : 'Ej. Llamar al proveedor'} autoFocus={!existing} />
+          <label htmlFor="ed-title" className="label">{isReport ? 'Nombre del informe' : isMeeting ? 'Nombre de la reunión' : 'Qué tenés que hacer'}</label>
+          <input id="ed-title" className="field" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isReport ? 'Ej. Facturas bloqueadas' : isMeeting ? 'Ej. Reunión de gerencia' : 'Ej. Llamar al proveedor'} autoFocus={!existing} />
         </div>
 
         {isReport && (
@@ -170,9 +182,9 @@ export function ItemEditor({ itemId, kind, onClose }: { itemId?: string; kind: I
         )}
 
         <fieldset className="grid gap-3">
-          <legend className="label mb-1.5">{isReport ? 'Cuándo se envía' : 'Cuándo'}</legend>
+          <legend className="label mb-1.5">{isReport ? 'Cuándo se envía' : isMeeting ? 'Cuándo es' : 'Cuándo'}</legend>
           <select className="field" value={ruleType} onChange={(e) => setRuleType(e.target.value as RuleType)} aria-label="Tipo de repetición">
-            {!isReport && <option value="none">Sin fecha</option>}
+            {isTask && <option value="none">Sin fecha</option>}
             <option value="once">Una sola vez</option>
             <option value="weekly">Todas las semanas</option>
             <option value="businessDay">Un día hábil del mes (ej. 3er día hábil)</option>
@@ -235,15 +247,50 @@ export function ItemEditor({ itemId, kind, onClose }: { itemId?: string; kind: I
                   <li key={p.key} className="flex flex-wrap gap-x-2">
                     <span>{cap(formatDayLabel(p.date))}</span>
                     {p.key !== p.date && <span className="text-xs text-pink">(adelantado: el {formatDayLabel(p.key)} no es hábil)</span>}
+                    {isMeeting && calendar.holidays.has(p.date) && <span className="inline-flex items-center gap-1 text-xs text-danger"><TriangleAlert size={12} /> cae feriado</span>}
                   </li>
                 ))}
               </ul>
             </div>
           )}
           {rule && rule.type !== 'once' && (
-            <p className="flex gap-1.5 text-xs text-muted"><Info size={14} className="mt-px flex-none" /> Si la fecha cae feriado o fin de semana, se adelanta al día hábil anterior.</p>
+            <p className="flex gap-1.5 text-xs text-muted"><Info size={14} className="mt-px flex-none" />
+              {isMeeting
+                ? 'Si cae feriado, la reunión no se mueve sola: te la marco para que la muevas o la canceles.'
+                : 'Si la fecha cae feriado o fin de semana, se adelanta al día hábil anterior.'}
+            </p>
           )}
         </fieldset>
+
+        {isMeeting && (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="grid gap-1.5"><span className="label">Empieza</span>
+                <input type="time" className="field" value={time} onChange={(e) => setTime(e.target.value)} required />
+              </label>
+              <label className="grid gap-1.5"><span className="label">Termina (opcional)</span>
+                <input type="time" className="field" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+              </label>
+            </div>
+            {endTime && time && endTime <= time && <p className="-mt-3 text-sm text-danger">La hora de fin tiene que ser posterior al inicio.</p>}
+            <div className="grid gap-1.5">
+              <label htmlFor="ed-loc" className="label">Lugar o link (opcional)</label>
+              <input id="ed-loc" className="field" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Ej. Sala 2, o un link de Meet / Zoom / Teams" />
+              <p className="text-xs text-muted">Si pegás un link, te aparece el botón "Unirme".</p>
+            </div>
+            <div className="grid gap-1.5">
+              <label htmlFor="ed-remind" className="label">Avisarme</label>
+              <select id="ed-remind" className="field" value={remindMinutes} onChange={(e) => setRemindMinutes(Number(e.target.value))}>
+                <option value={5}>5 minutos antes</option>
+                <option value={10}>10 minutos antes</option>
+                <option value={15}>15 minutos antes</option>
+                <option value={30}>30 minutos antes</option>
+                <option value={60}>1 hora antes</option>
+                <option value={0}>Sin aviso</option>
+              </select>
+            </div>
+          </>
+        )}
 
         {isReport && (
           <div className="grid gap-1.5">
@@ -258,7 +305,7 @@ export function ItemEditor({ itemId, kind, onClose }: { itemId?: string; kind: I
           </div>
         )}
 
-        {!isReport && ruleType !== 'none' && (
+        {isTask && ruleType !== 'none' && (
           <div className="grid gap-1.5">
             <label htmlFor="ed-time" className="label">Hora (opcional)</label>
             <input id="ed-time" type="time" className="field" value={time} onChange={(e) => setTime(e.target.value)} />
@@ -267,17 +314,17 @@ export function ItemEditor({ itemId, kind, onClose }: { itemId?: string; kind: I
 
         <div className="grid gap-1.5">
           <label htmlFor="ed-notes" className="label">Notas (opcional)</label>
-          <textarea id="ed-notes" className="field min-h-20" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={isReport ? 'Ej. de dónde sacar los datos' : ''} />
+          <textarea id="ed-notes" className="field min-h-20" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={isReport ? 'Ej. de dónde sacar los datos' : isMeeting ? 'Ej. temario o qué llevar' : ''} />
         </div>
 
         <div className="grid gap-3">
-          {ruleType !== 'none' && (
+          {ruleType !== 'none' && !isMeeting && (
             <label className="flex items-start gap-3">
               <input type="checkbox" className="mt-1 h-4 w-4 accent-[var(--primary)]" checked={remindDayBefore} onChange={(e) => setRemind(e.target.checked)} />
               <span><span className="font-medium">Avisarme también el día hábil anterior</span><br /><span className="text-sm text-muted">Útil si lleva preparación.</span></span>
             </label>
           )}
-          {!isReport && (
+          {isTask && (
             <label className="flex items-start gap-3">
               <input type="checkbox" className="mt-1 h-4 w-4 accent-[var(--primary)]" checked={priority === 'high'} onChange={(e) => setPriority(e.target.checked ? 'high' : 'normal')} />
               <span className="font-medium">Prioridad alta</span>

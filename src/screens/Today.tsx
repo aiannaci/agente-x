@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { PartyPopper, Plus } from 'lucide-react'
+import { PartyPopper, Plus, Users } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { occurrencesInRange, isBusinessDay } from '../lib/recurrence'
 import { addDays, todayISO, formatDayLabel, cap, MONTHS, fromISO, WEEKDAYS, weekday } from '../lib/dates'
@@ -11,13 +11,15 @@ export function Today({ onEdit, onNewReport }: { onEdit: (id: string) => void; o
   const { items, completions, overrides, calendar, onboarded, setOnboarded, holidays, user } = useStore()
   const today = todayISO()
 
-  const { overdue, todays, next, nextDate } = useMemo(() => {
-    const overdue = occurrencesInRange(items, addDays(today, -60), addDays(today, -1), calendar, completions, overrides).filter((o) => !o.done)
-    const todays = occurrencesInRange(items, today, today, calendar, completions, overrides)
+  const { overdue, todays, meetings, next, nextDate } = useMemo(() => {
+    const overdue = occurrencesInRange(items, addDays(today, -60), addDays(today, -1), calendar, completions, overrides).filter((o) => !o.done && o.item.kind !== 'meeting')
+    const todayAll = occurrencesInRange(items, today, today, calendar, completions, overrides)
+    const meetings = todayAll.filter((o) => o.item.kind === 'meeting')
+    const todays = todayAll.filter((o) => o.item.kind !== 'meeting')
     let nextDate = addDays(today, 1)
     for (let i = 0; i < 10 && !isBusinessDay(nextDate, calendar); i++) nextDate = addDays(nextDate, 1)
     const next = occurrencesInRange(items, addDays(today, 1), nextDate, calendar, completions, overrides)
-    return { overdue, todays, next, nextDate }
+    return { overdue, todays, meetings, next, nextDate }
   }, [items, completions, overrides, calendar, today])
 
   const pending = overdue.length + todays.filter((o) => !o.done).length
@@ -46,6 +48,12 @@ export function Today({ onEdit, onNewReport }: { onEdit: (id: string) => void; o
             <Button variant="ghost" onClick={setOnboarded}>Después</Button>
           </div>
         </div>
+      )}
+
+      {meetings.length > 0 && (
+        <Section title={<span className="inline-flex items-center gap-1.5"><Users size={13} /> Reuniones de hoy</span>} aside={`${meetings.length}`}>
+          {meetings.map((o) => <OccurrenceCard key={o.item.id + o.key} occ={o} onEdit={onEdit} />)}
+        </Section>
       )}
 
       {overdue.length > 0 && (

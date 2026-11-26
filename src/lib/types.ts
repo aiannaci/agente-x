@@ -17,7 +17,7 @@ export type SubjectPeriod = 'date' | 'prevMonth' | 'currentMonth'
 
 export interface Item {
   id: string
-  kind: 'report' | 'task'
+  kind: 'report' | 'task' | 'meeting'
   title: string
   notes?: string
   /** Solo informes. */
@@ -26,8 +26,14 @@ export interface Item {
   subjectPeriod: SubjectPeriod
   /** null = tarea sin fecha ("algún día"). */
   rule: Rule | null
-  /** Hora opcional 'HH:MM' (tareas). */
+  /** Hora 'HH:MM': opcional en tareas, hora de inicio en reuniones. */
   time?: string
+  /** Reuniones: hora de fin 'HH:MM'. */
+  endTime?: string
+  /** Reuniones: sala o link (Meet, Zoom, Teams…). */
+  location?: string
+  /** Reuniones: minutos de anticipación del aviso (0 = sin aviso). */
+  remindMinutes?: number
   priority: 'normal' | 'high'
   /** Activa el aviso el día hábil anterior. */
   remindDayBefore: boolean

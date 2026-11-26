@@ -88,3 +88,19 @@ describe('cambios puntuales', () => {
     ])
   })
 })
+
+describe('reuniones', () => {
+  const meeting: Item = {
+    id: 'm', kind: 'meeting', title: 'Reunión de gerencia', to: [], cc: [], subjectPeriod: 'date',
+    rule: { type: 'weekly', days: [2] }, time: '10:00', priority: 'normal', remindDayBefore: false, active: true, createdAt: '2026-11-01',
+  }
+  it('no se adelantan si caen feriado', () => {
+    const occ = occurrencesInRange([meeting], '2026-12-01', '2026-12-10', cal, [], [])
+    expect(occ.map((o) => o.date)).toEqual(['2026-12-01', '2026-12-08'])
+  })
+  it('lo que tiene hora va primero en el día', () => {
+    const task: Item = { ...meeting, id: 't', kind: 'task', time: undefined, rule: { type: 'once', date: '2026-12-01' } }
+    const occ = occurrencesInRange([task, meeting], '2026-12-01', '2026-12-01', cal, [], [])
+    expect(occ.map((o) => o.item.id)).toEqual(['m', 't'])
+  })
+})

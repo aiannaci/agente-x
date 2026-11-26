@@ -6,6 +6,7 @@ import { mailtoLink } from '../lib/email'
 import { describeRule } from '../lib/recurrence'
 import { formatShort, todayISO, diffDays } from '../lib/dates'
 import { Button, Tag } from './ui'
+import { MeetingCard } from './MeetingCard'
 
 export function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
   return (
@@ -32,6 +33,8 @@ export function OccurrenceCard({ occ, overdue, onEdit, showRule }: { occ: Occurr
   const isReport = item.kind === 'report'
   // El botón de email solo aparece cuando el envío es inminente (atrasado, hoy o mañana).
   const showMail = isReport && !done && !!date && diffDays(todayISO(), date) <= 1
+
+  if (item.kind === 'meeting') return <MeetingCard occ={occ} onEdit={onEdit} showRule={showRule} />
 
   return (
     <div className={`rounded-2xl border bg-surface p-3 transition ${overdue && !done ? 'border-danger/50' : 'border-line'}`}>

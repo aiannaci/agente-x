@@ -85,7 +85,7 @@ async function loadData(env: Env, uid: string) {
 const isStr = (v: unknown, max = 500): v is string => typeof v === 'string' && v.length > 0 && v.length <= max
 
 function validItem(v: any): boolean {
-  return v && isStr(v.id, 64) && isStr(v.title, 300) && (v.kind === 'report' || v.kind === 'task') && JSON.stringify(v).length < 20_000
+  return v && isStr(v.id, 64) && isStr(v.title, 300) && (v.kind === 'report' || v.kind === 'task' || v.kind === 'meeting') && JSON.stringify(v).length < 20_000
 }
 
 async function api(req: Request, env: Env, path: string): Promise<Response> {
