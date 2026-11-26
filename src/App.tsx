@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Sun, CalendarDays, FileText, ListTodo, History as HistoryIcon, Settings, Plus, Share2, Check } from 'lucide-react'
+import { Sun, CalendarDays, FileText, ListTodo, Users, History as HistoryIcon, Settings, Plus, Share2, Check } from 'lucide-react'
 import { useShareApp } from './components/ShareApp'
 import { Logo } from './components/Logo'
 import { ItemEditor } from './components/ItemEditor'
@@ -7,7 +7,8 @@ import { SettingsSheet } from './components/SettingsSheet'
 import { Today } from './screens/Today'
 import { Upcoming } from './screens/Upcoming'
 import { Reports } from './screens/Reports'
-import { Agenda } from './screens/Agenda'
+import { Tasks } from './screens/Tasks'
+import { Meetings } from './screens/Meetings'
 import { History } from './screens/History'
 import type { Item } from './lib/types'
 import { useStore } from './lib/store'
@@ -17,7 +18,8 @@ const TABS = [
   { id: 'hoy', label: 'Hoy', icon: Sun },
   { id: 'proximos', label: 'Próximos', icon: CalendarDays },
   { id: 'informes', label: 'Informes', icon: FileText },
-  { id: 'agenda', label: 'Agenda', icon: ListTodo },
+  { id: 'tareas', label: 'Tareas', icon: ListTodo },
+  { id: 'reuniones', label: 'Reuniones', icon: Users },
   { id: 'historial', label: 'Historial', icon: HistoryIcon },
 ] as const
 type Tab = (typeof TABS)[number]['id']
@@ -89,6 +91,10 @@ export default function App() {
             <Logo size={32} />
             <span className="font-display text-lg font-bold">Agente X</span>
             <div className="flex-1" />
+            <button type="button" onClick={() => go('historial')} aria-current={tab === 'historial' ? 'page' : undefined}
+              className={`rounded-full p-2 hover:bg-surface-2 ${tab === 'historial' ? 'bg-soft text-primary' : 'text-muted'}`} aria-label="Historial">
+              <HistoryIcon size={20} />
+            </button>
             <button type="button" onClick={shareApp.share} className="rounded-full p-2 text-muted hover:bg-surface-2" aria-label="Compartir la app">
               {shareApp.copied ? <Check size={20} /> : <Share2 size={20} />}
             </button>
@@ -103,7 +109,8 @@ export default function App() {
           {tab === 'hoy' && <Today onEdit={edit} onNewReport={() => newItem('report')} />}
           {tab === 'proximos' && <Upcoming onEdit={edit} />}
           {tab === 'informes' && <Reports onEdit={edit} onNew={() => newItem('report')} />}
-          {tab === 'agenda' && <Agenda onEdit={edit} onNew={newItem} />}
+          {tab === 'tareas' && <Tasks onEdit={edit} onNew={() => newItem('task')} />}
+          {tab === 'reuniones' && <Meetings onEdit={edit} onNew={() => newItem('meeting')} />}
           {tab === 'historial' && <History />}
         </main>
       </div>
@@ -120,7 +127,7 @@ export default function App() {
       {/* Navegación inferior (celu) */}
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur md:hidden">
         <div className="grid grid-cols-5">
-          {TABS.map((t) => (
+          {TABS.filter((t) => t.id !== 'historial').map((t) => (
             <button key={t.id} type="button" onClick={() => go(t.id)} aria-current={tab === t.id ? 'page' : undefined}
               className={`flex flex-col items-center gap-1 pb-2.5 pt-2 text-[11px] font-semibold ${tab === t.id ? 'text-primary' : 'text-muted'}`}>
               <span className={`grid h-7 w-12 place-items-center rounded-full transition ${tab === t.id ? 'bg-soft' : ''}`}><t.icon size={19} /></span>
