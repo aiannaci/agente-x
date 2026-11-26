@@ -5,7 +5,7 @@ import { useStore } from '../lib/store'
 import { ruleOccurrences, emailSubject, defaultSubjectPeriod, describeRule } from '../lib/recurrence'
 import { addDays, todayISO, formatDayLabel, cap, WEEKDAYS, WEEKDAYS_SHORT } from '../lib/dates'
 import { isEmail, parseEmails } from '../lib/email'
-import { newId } from '../lib/seed'
+import { newId } from '../lib/id'
 import { Button, Sheet } from './ui'
 
 type RuleType = 'none' | Rule['type']

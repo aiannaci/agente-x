@@ -80,7 +80,7 @@ export default function App() {
 
         <main className="mx-auto max-w-2xl px-4 pb-32 pt-5 md:px-8 md:pb-16 md:pt-10">
           {syncError && <p role="status" className="mb-4 rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">{syncError}</p>}
-          {tab === 'hoy' && <Today onEdit={edit} />}
+          {tab === 'hoy' && <Today onEdit={edit} onNewReport={() => newItem('report')} />}
           {tab === 'proximos' && <Upcoming onEdit={edit} />}
           {tab === 'informes' && <Reports onEdit={edit} onNew={() => newItem('report')} />}
           {tab === 'tareas' && <Tasks onEdit={edit} onNew={() => newItem('task')} />}

@@ -1,15 +1,14 @@
 import { useMemo } from 'react'
-import { PartyPopper, Download } from 'lucide-react'
+import { PartyPopper, Plus } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { occurrencesInRange, isBusinessDay } from '../lib/recurrence'
 import { addDays, todayISO, formatDayLabel, cap, MONTHS, fromISO, WEEKDAYS, weekday } from '../lib/dates'
-import { seedReports, SEED_COUNT } from '../lib/seed'
 import { OccurrenceCard } from '../components/OccurrenceCard'
 import { Button, Empty, Section } from '../components/ui'
 import { Logo } from '../components/Logo'
 
-export function Today({ onEdit }: { onEdit: (id: string) => void }) {
-  const { items, completions, overrides, calendar, onboarded, addItems, setOnboarded, holidays } = useStore()
+export function Today({ onEdit, onNewReport }: { onEdit: (id: string) => void; onNewReport: () => void }) {
+  const { items, completions, overrides, calendar, onboarded, setOnboarded, holidays, user } = useStore()
   const today = todayISO()
 
   const { overdue, todays, next, nextDate } = useMemo(() => {
@@ -39,12 +38,12 @@ export function Today({ onEdit }: { onEdit: (id: string) => void }) {
         <div className="flex flex-col gap-4 rounded-3xl border border-line bg-surface p-5 sm:flex-row sm:items-center">
           <Logo size={56} />
           <div className="flex-1">
-            <p className="font-semibold">¡Hola! Soy Agente X.</p>
-            <p className="text-sm text-muted">Puedo cargar tus {SEED_COUNT} informes con sus destinatarios y días de envío, o podés empezar de cero.</p>
+            <p className="font-semibold">¡Hola{user.name ? `, ${user.name.split(' ')[0]}` : ''}! Soy Agente X.</p>
+            <p className="text-sm text-muted">Cargá tu primer informe con sus destinatarios y días de envío, y yo te recuerdo cuándo mandarlo.</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => addItems(seedReports())}><Download size={16} /> Cargar mis {SEED_COUNT} informes</Button>
-            <Button variant="ghost" onClick={setOnboarded}>Empezar vacío</Button>
+            <Button onClick={() => { setOnboarded(); onNewReport() }}><Plus size={16} /> Crear mi primer informe</Button>
+            <Button variant="ghost" onClick={setOnboarded}>Después</Button>
           </div>
         </div>
       )}

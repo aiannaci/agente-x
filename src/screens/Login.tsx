@@ -60,7 +60,8 @@ export function Login() {
         })
         const dark = matchMedia('(prefers-color-scheme: dark)').matches
         window.google!.accounts.id.renderButton(btn.current!, {
-          theme: dark ? 'filled_black' : 'outline', size: 'large', shape: 'pill', text: 'continue_with', locale: 'es-419', width: 280,
+          theme: dark ? 'filled_black' : 'outline', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'center', locale: 'es-419',
+          width: Math.min(320, Math.max(200, btn.current!.parentElement!.clientWidth)),
         })
       })
       .catch((e) => setError(e.message))
@@ -81,8 +82,9 @@ export function Login() {
           <p className="text-muted">Tus informes y tareas, siempre a tiempo. Te aviso qué mandar, a quién y cuándo.</p>
         </div>
 
-        <div className="grid min-h-11 justify-items-center">
-          {config?.googleClientId && <div ref={btn} />}
+        <div className="grid min-h-11 w-full justify-items-center">
+          {/* color-scheme light: evita el recuadro blanco que el iframe de Google muestra en modo oscuro */}
+          {config?.googleClientId && <div ref={btn} className="flex h-11 justify-center overflow-hidden rounded-full" style={{ colorScheme: 'light' }} />}
           {config && !config.googleClientId && !config.devLogin && (
             <p className="rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-muted">El ingreso con Google se está terminando de configurar. Volvé a intentar en un rato.</p>
           )}

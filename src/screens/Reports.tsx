@@ -1,13 +1,12 @@
 import { useMemo } from 'react'
-import { FileText, Plus, ChevronRight, Download } from 'lucide-react'
+import { FileText, Plus, ChevronRight } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { describeRule, occurrencesInRange } from '../lib/recurrence'
 import { addDays, todayISO, formatDayLabel } from '../lib/dates'
-import { seedReports, SEED_COUNT } from '../lib/seed'
 import { Button, Empty, Tag } from '../components/ui'
 
 export function Reports({ onEdit, onNew }: { onEdit: (id: string) => void; onNew: () => void }) {
-  const { items, completions, overrides, calendar, addItems } = useStore()
+  const { items, completions, overrides, calendar } = useStore()
   const today = todayISO()
   const reports = items.filter((i) => i.kind === 'report')
 
@@ -30,8 +29,8 @@ export function Reports({ onEdit, onNew }: { onEdit: (id: string) => void; onNew
 
       {reports.length === 0 ? (
         <Empty icon={<FileText size={28} />} title="Todavía no tenés informes">
-          <p className="mb-3">Creá uno nuevo o cargá los {SEED_COUNT} informes de tu planilla.</p>
-          <Button variant="soft" onClick={() => addItems(seedReports())}><Download size={16} /> Cargar mis {SEED_COUNT} informes</Button>
+          <p className="mb-3">Cargá un informe con sus destinatarios y cuándo se envía.</p>
+          <Button variant="soft" onClick={onNew}><Plus size={16} /> Crear informe</Button>
         </Empty>
       ) : (
         <ul className="grid gap-2">
