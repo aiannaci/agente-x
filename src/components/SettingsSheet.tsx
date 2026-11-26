@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { Trash2, Plus, RotateCcw } from 'lucide-react'
+import { Trash2, Plus, RotateCcw, LogOut } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { DEFAULT_HOLIDAYS } from '../lib/holidays'
 import { formatShort, todayISO, WEEKDAYS_SHORT, WEEKDAYS } from '../lib/dates'
 import { Button, Sheet, Tag } from './ui'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
-  const { settings, setSettings, holidays, setHolidays } = useStore()
+  const { settings, setSettings, holidays, setHolidays, user, logout } = useStore()
   const [newDate, setNewDate] = useState('')
   const [newName, setNewName] = useState('')
   const [showPast, setShowPast] = useState(false)
@@ -16,6 +16,19 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Ajustes" onClose={onClose}>
       <div className="grid gap-7">
+        <section className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3">
+          {user.picture ? (
+            <img src={user.picture} alt="" className="h-10 w-10 flex-none rounded-full" referrerPolicy="no-referrer" />
+          ) : (
+            <div className="grid h-10 w-10 flex-none place-items-center rounded-full bg-soft font-semibold">{user.email[0]?.toUpperCase()}</div>
+          )}
+          <div className="min-w-0 flex-1">
+            {user.name && <p className="truncate font-semibold">{user.name}</p>}
+            <p className="truncate text-sm text-muted">{user.email}</p>
+          </div>
+          <Button variant="ghost" onClick={logout}><LogOut size={16} /> Salir</Button>
+        </section>
+
         <section className="grid gap-3">
           <h3 className="font-semibold">Horario laboral</h3>
           <p className="-mt-2 text-sm text-muted">Las alertas solo llegan dentro de este horario y en estos días.</p>

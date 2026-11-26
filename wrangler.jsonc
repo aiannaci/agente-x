@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "agente-x",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-06-01",
+  "account_id": "ba24054eb66f1fe9d92ee007409f2615",
+  "workers_dev": true,
+  "d1_databases": [
+    { "binding": "DB", "database_name": "agente-x", "database_id": "e40267fc-6ffe-4286-848d-c010add02bda", "migrations_dir": "migrations" }
+  ],
+  "vars": {
+    // Client ID de Google OAuth (público). Se completa al dar de alta el login con Google.
+    "GOOGLE_CLIENT_ID": ""
+  },
+  "observability": { "enabled": true }
+}

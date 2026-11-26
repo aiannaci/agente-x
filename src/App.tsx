@@ -9,6 +9,7 @@ import { Reports } from './screens/Reports'
 import { Tasks } from './screens/Tasks'
 import { History } from './screens/History'
 import type { Item } from './lib/types'
+import { useStore } from './lib/store'
 
 const TABS = [
   { id: 'hoy', label: 'Hoy', icon: Sun },
@@ -28,6 +29,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>(tabFromHash)
   const [editor, setEditor] = useState<{ id?: string; kind: Item['kind'] } | null>(null)
   const [settings, setSettings] = useState(false)
+  const { syncError } = useStore()
 
   useEffect(() => {
     const on = () => setTab(tabFromHash())
@@ -77,6 +79,7 @@ export default function App() {
         </header>
 
         <main className="mx-auto max-w-2xl px-4 pb-32 pt-5 md:px-8 md:pb-16 md:pt-10">
+          {syncError && <p role="status" className="mb-4 rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">{syncError}</p>}
           {tab === 'hoy' && <Today onEdit={edit} />}
           {tab === 'proximos' && <Upcoming onEdit={edit} />}
           {tab === 'informes' && <Reports onEdit={edit} onNew={() => newItem('report')} />}
