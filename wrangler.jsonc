@@ -10,7 +10,7 @@
   ],
   "vars": {
     // Client ID de Google OAuth (público). Se completa al dar de alta el login con Google.
-    "GOOGLE_CLIENT_ID": ""
+    "GOOGLE_CLIENT_ID": "858064675156-kqgehgnu3fb90cmtbit4pah76aij8va8.apps.googleusercontent.com"
   },
   "observability": { "enabled": true }
 }
